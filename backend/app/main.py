@@ -55,11 +55,13 @@ async def _startup() -> None:
 
     def _prewarm() -> None:
         try:
-            from app.core.embeddings import embedding_backend
+            from app.core.diagnostics import log_diagnostics
             from app.core.llm import llm_complete
 
-            embedding_backend()
             llm_complete("ping")
+            # Logs a clear AI-stack summary + warnings (empty index, hashing
+            # fallback, dimension mismatch) so RAG problems are visible at boot.
+            log_diagnostics()
         except Exception:  # noqa: BLE001
             pass
 

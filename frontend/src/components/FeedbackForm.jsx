@@ -1,19 +1,50 @@
 import { useState } from 'react';
-import { Box, Button, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import {
+  Alert,
+  AlertTitle,
+  Box,
+  Button,
+  Stack,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from '@mui/material';
 import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
 import ThumbDownAltIcon from '@mui/icons-material/ThumbDownAlt';
 
+// `onSubmit(rating, comment)` should return the feedback response (or a promise
+// resolving to it) so we can tell the employee whether the ticket was escalated.
 export default function FeedbackForm({ onSubmit, submitting = false }) {
   const [rating, setRating] = useState(null);
   const [comment, setComment] = useState('');
+  const [done, setDone] = useState(null); // feedback response after a successful submit
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (rating == null) return;
-    onSubmit(rating, comment.trim());
+    const result = await onSubmit(rating, comment.trim());
+    setDone({ rating, escalated: !!result?.escalated });
     setComment('');
     setRating(null);
   };
+
+  if (done) {
+    if (done.rating === 0 && done.escalated) {
+      return (
+        <Alert severity="info" icon={<ThumbDownAltIcon fontSize="small" />}>
+          <AlertTitle>Thanks for letting us know</AlertTitle>
+          Since this didn&apos;t resolve your issue, we&apos;ve escalated it to our support
+          team — an agent will contact you by email shortly.
+        </Alert>
+      );
+    }
+    return (
+      <Alert severity="success" icon={<ThumbUpAltIcon fontSize="small" />}>
+        Thanks for your feedback!
+      </Alert>
+    );
+  }
 
   return (
     <Box component="form" onSubmit={handleSubmit}>

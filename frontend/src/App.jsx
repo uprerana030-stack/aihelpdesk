@@ -6,11 +6,38 @@ import AgentPage from './pages/AgentPage';
 import ManagerPage from './pages/ManagerPage';
 import KnowledgeBasePage from './pages/KnowledgeBasePage';
 import DatabasePage from './pages/DatabasePage';
-import { homePathForRole, useUser } from './context/UserContext';
+import EscalationsPage from './pages/EscalationsPage';
+import {
+  AGENT_ROLES,
+  KB_WRITER_ROLES,
+  MANAGER_ROLES,
+  homePathForRole,
+  useUser,
+} from './context/UserContext';
+
+// Roles allowed to view the Knowledge Base — everyone except plain employees.
+const KB_ROLES = new Set([...AGENT_ROLES, ...MANAGER_ROLES, ...KB_WRITER_ROLES]);
+
+// The manual team (agents + managers) may view the Escalations dashboard.
+const MANUAL_TEAM_ROLES = new Set([...AGENT_ROLES, ...MANAGER_ROLES]);
 
 function RequireUser({ children }) {
   const { user } = useUser();
   if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+// Redirects a plain employee away from the Knowledge Base to their home.
+function RequireKbAccess({ children }) {
+  const { role } = useUser();
+  if (!KB_ROLES.has(role)) return <Navigate to={homePathForRole(role)} replace />;
+  return <>{children}</>;
+}
+
+// Restricts the Escalations dashboard to the manual team (agents + managers).
+function RequireManualTeam({ children }) {
+  const { role } = useUser();
+  if (!MANUAL_TEAM_ROLES.has(role)) return <Navigate to={homePathForRole(role)} replace />;
   return <>{children}</>;
 }
 
@@ -35,7 +62,22 @@ export default function App() {
         <Route path="/agent" element={<AgentPage />} />
         <Route path="/manager" element={<ManagerPage />} />
         <Route path="/database" element={<DatabasePage />} />
-        <Route path="/kb" element={<KnowledgeBasePage />} />
+        <Route
+          path="/escalations"
+          element={
+            <RequireManualTeam>
+              <EscalationsPage />
+            </RequireManualTeam>
+          }
+        />
+        <Route
+          path="/kb"
+          element={
+            <RequireKbAccess>
+              <KnowledgeBasePage />
+            </RequireKbAccess>
+          }
+        />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

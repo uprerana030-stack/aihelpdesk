@@ -15,16 +15,31 @@ CATEGORIES = [
     "HR/Payroll", "Finance/Reimbursement", "Facilities", "Other",
 ]
 
-# Keyword cues for the deterministic fallback classifier.
+# Keyword cues for the deterministic fallback classifier (used only when the LLM
+# is unavailable). Broadened to cover the common ticket phrasings seen in the
+# ticket table (network/vpn/server, system crash, hardware, etc.).
 _KEYWORDS: dict[str, list[str]] = {
-    "Password/Access": ["password", "reset", "locked", "login", "mfa", "2fa", "access", "vpn account"],
-    "Hardware": ["laptop", "monitor", "keyboard", "mouse", "printer", "battery", "charger", "device", "screen broken"],
-    "Software": ["install", "license", "application", "app crash", "software", "update", "excel", "outlook crash"],
-    "Network": ["wifi", "wi-fi", "internet", "network", "vpn", "connection", "slow connection"],
-    "Email": ["email", "mailbox", "outlook", "spam", "distribution list", "calendar invite"],
-    "HR/Payroll": ["leave", "payroll", "salary", "hr", "benefits", "onboarding", "offboarding", "payslip"],
-    "Finance/Reimbursement": ["reimbursement", "invoice", "expense", "finance", "payment", "budget", "claim"],
-    "Facilities": ["desk", "chair", "ac", "air conditioning", "office", "parking", "badge", "room booking"],
+    "Password/Access": ["password", "reset", "locked", "lock out", "locked out", "login", "log in",
+                         "sign in", "mfa", "2fa", "authentication", "credentials", "unlock", "access",
+                         "permission", "permissions", "shared drive", "file permission"],
+    "Hardware": ["laptop", "monitor", "second screen", "keyboard", "mouse", "printer", "battery",
+                 "charger", "device", "screen", "blue screen", "bsod", "crash", "crashes", "crashed",
+                 "not detected", "won't turn on", "wont turn on", "disk", "disk space", "storage full",
+                 "audio", "sound", "headset", "microphone", "webcam", "hardware"],
+    "Software": ["install", "installation", "license", "licence", "application", "app crash", "software",
+                 "update", "system update", "os update", "excel", "teams", "onedrive", "sync",
+                 "browser", "cache", "cookies", "add-in", "office"],
+    "Network": ["wifi", "wi-fi", "internet", "network", "vpn", "connectivity", "connection",
+                "disconnect", "disconnecting", "drops", "dropping", "server", "cannot reach",
+                "no access", "remote desktop", "rdp", "dns", "slow connection", "offline"],
+    "Email": ["email", "e-mail", "mailbox", "outlook", "spam", "quarantine", "signature",
+              "distribution list", "calendar invite", "not delivered", "delivery delay"],
+    "HR/Payroll": ["leave", "payroll", "salary", "hr", "benefits", "onboarding", "offboarding",
+                   "payslip", "new employee", "new hire"],
+    "Finance/Reimbursement": ["reimbursement", "reimburse", "invoice", "expense", "expenses",
+                              "finance", "payment", "budget", "claim", "receipt", "receipts"],
+    "Facilities": ["desk", "chair", "ac", "air conditioning", "office", "parking", "badge",
+                   "room booking", "meeting room", "hot desk"],
 }
 
 _SYSTEM = "You are an IT/Admin helpdesk classification agent. Respond with JSON only."

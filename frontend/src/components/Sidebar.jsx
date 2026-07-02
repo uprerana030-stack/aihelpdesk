@@ -11,18 +11,26 @@ import SupportAgentOutlinedIcon from '@mui/icons-material/SupportAgentOutlined';
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
+import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AGENT_ROLES, MANAGER_ROLES, useUser } from '../context/UserContext';
+import { AGENT_ROLES, KB_WRITER_ROLES, MANAGER_ROLES, useUser } from '../context/UserContext';
 import { COLORS } from '../theme';
 
 const DRAWER_WIDTH = 240;
 
+// Roles that may see the Knowledge Base: agents, managers, and KB writers — but NOT plain employees.
+const KB_ROLES = Array.from(new Set([...AGENT_ROLES, ...MANAGER_ROLES, ...KB_WRITER_ROLES]));
+
+// The manual team = agents + managers (no plain employees, no KB-only admins).
+const MANUAL_TEAM_ROLES = Array.from(new Set([...AGENT_ROLES, ...MANAGER_ROLES]));
+
 const NAV_ITEMS = [
   { label: 'My Tickets', path: '/employee', icon: <ConfirmationNumberOutlinedIcon />, roles: ['employee'] },
   { label: 'Agent Queue', path: '/agent', icon: <SupportAgentOutlinedIcon />, roles: AGENT_ROLES },
+  { label: 'Escalations', path: '/escalations', icon: <ReportProblemOutlinedIcon />, roles: MANUAL_TEAM_ROLES },
   { label: 'Analytics', path: '/manager', icon: <InsightsOutlinedIcon />, roles: MANAGER_ROLES },
   { label: 'Database', path: '/database', icon: <StorageOutlinedIcon />, roles: MANAGER_ROLES },
-  { label: 'Knowledge Base', path: '/kb', icon: <MenuBookOutlinedIcon /> },
+  { label: 'Knowledge Base', path: '/kb', icon: <MenuBookOutlinedIcon />, roles: KB_ROLES },
 ];
 
 export default function Sidebar() {

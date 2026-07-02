@@ -12,7 +12,9 @@ from app.core.security import Role
 class RegisterRequest(BaseModel):
     email: EmailStr
     full_name: str = ""
-    password: str = Field(min_length=6)
+    # Optional: self-service employee registration only needs name/email/dept.
+    # When omitted, a default demo password is used (identity is the email header).
+    password: str | None = Field(default=None, min_length=6)
     role_name: str = Role.EMPLOYEE
     department: str | None = None
 
@@ -93,6 +95,15 @@ class TicketSubmitResult(BaseModel):
     ticket: TicketOut
     pipeline: list[PipelineStep]
     duplicate_suggestions: list[DuplicateSuggestion] = []
+
+
+class EscalatedTicketOut(BaseModel):
+    """An escalated ticket for the manual-team dashboard, with employee contact."""
+    ticket: TicketOut
+    employee_name: str = ""
+    employee_email: str = ""
+    employee_department: str | None = None
+    feedback_comment: str | None = None
 
 
 class EscalateRequest(BaseModel):

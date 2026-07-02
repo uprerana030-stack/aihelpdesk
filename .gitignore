@@ -14,6 +14,10 @@ env/
 
 
 
+# Frontend build cache
+frontend/.vite/
+node_modules/
+
 # OS / editor
 .DS_Store
 .vscode/

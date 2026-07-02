@@ -7,6 +7,17 @@ export async function login(email, password) {
   return data;
 }
 
+export async function register({ email, full_name, password, department, role_name }) {
+  const { data } = await client.post('/auth/register', {
+    email,
+    full_name,
+    password,
+    department,
+    role_name: role_name || 'employee',
+  });
+  return data;
+}
+
 export async function listUsers() {
   const { data } = await client.get('/auth/users');
   return data;

@@ -27,6 +27,7 @@ from app.core.embeddings import embedding_backend  # noqa: E402
 from app.core.vectorstore import (  # noqa: E402
     KB_COLLECTION,
     TICKET_COLLECTION,
+    reset_collection,
     upsert_ticket_embedding,
 )
 from app.models import KnowledgeArticle, Ticket  # noqa: E402
@@ -35,12 +36,16 @@ from app.services.kb_service import KBService  # noqa: E402
 
 def _clear_collections() -> None:
     """Wipe both collections so no stale-dimension vectors survive."""
+    for name in (KB_COLLECTION, TICKET_COLLECTION):
+        reset_collection(name)
+        print(f"  cleared {name}")
+    # Remove any leftover numpy-fallback JSON files so a switch to ChromaDB
+    # doesn't leave stale data behind.
     settings = get_settings()
     for name in (KB_COLLECTION, TICKET_COLLECTION):
         f = Path(settings.chroma_persist_dir) / f"{name}.json"
         if f.exists():
             f.unlink()
-            print(f"  cleared {f}")
 
 
 def run() -> None:

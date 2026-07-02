@@ -14,9 +14,17 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.diagnostics import run_diagnostics
 from app.models import AuditLog, Feedback, KnowledgeArticle, Role, Ticket, User
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+@router.get("/diagnostics")
+async def diagnostics() -> dict:
+    """AI-stack health: embedding backend, vector store, KB chunk count, and a
+    smoke retrieval — so a broken RAG path (0% auto-resolution) is visible."""
+    return run_diagnostics()
 
 # Displayed in the same order in the UI.
 _TABLES = {

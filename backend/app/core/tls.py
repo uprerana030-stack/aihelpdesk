@@ -86,13 +86,6 @@ def apply_tls_settings() -> None:
     except Exception:  # noqa: BLE001
         pass
 
-
-def genai_transport() -> str | None:
-    """Preferred google-generativeai transport.
-
-    gRPC (the SDK default) cannot skip TLS verification, so when verification is
-    disabled we use the REST transport instead — it is built on `requests`,
-    which `apply_tls_settings()` patches to verify=False. Returns None to keep
-    the SDK default when verification is left enabled.
-    """
-    return "rest" if get_settings().disable_ssl_verify else None
+# Note: the Gemini SDK (google-genai) is built on httpx and does not honor the
+# requests patch or the stdlib ssl hook above; its TLS-verify setting is applied
+# per-client via HttpOptions in app/core/gemini.py.

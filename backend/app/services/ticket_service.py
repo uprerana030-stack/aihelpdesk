@@ -172,8 +172,58 @@ class TicketService:
         fb = self.feedback.add(Feedback(ticket_id=ticket.id, user_id=user.id, rating=rating, comment=comment))
         self.logs.record(event="feedback_received", ticket_id=ticket.id, actor=user.email,
                          output_data={"rating": rating})
-        # Continuous-learning hook: feedback is logged for later tuning.
+        # If the employee says an AI-generated resolution did NOT work (thumbs
+        # down), the automated fix failed -> escalate to the human team so an
+        # agent can pick it up and contact the employee.
+        if rating == 0 and ticket.resolution_source in ("auto", "duplicate_match"):
+            self._escalate_from_feedback(ticket, user, comment)
         return fb
+
+    def _escalate_from_feedback(self, ticket: Ticket, user: User, comment: str) -> None:
+        """Re-open an auto-resolved ticket that the employee reports unresolved,
+        route it to the right human team, and assign an available agent."""
+        from app.agents.routing_agent import RoutingAgent
+
+        dept = ticket.department
+        if not dept:
+            dept = RoutingAgent().run(ticket.category, 0.0).output.get("department")
+        ticket.department = dept
+        ticket.status = TicketStatus.ESCALATED
+        ticket.escalation_target = "human_team"
+        ticket.resolved_at = None  # no longer considered resolved
+        reason = ("The automated solution did not resolve the issue (employee feedback), "
+                  f"so it was escalated to the {dept} team for manual handling.")
+        if comment:
+            reason += f' Employee note: "{comment}"'
+        ticket.routing_reason = reason
+
+        agent = self.users.pick_available_agent(dept)
+        if agent:
+            ticket.assigned_agent_id = agent.id
+        self.tickets.save(ticket)
+        self.logs.record(event="escalated_from_feedback", ticket_id=ticket.id, actor=user.email,
+                         output_data={"department": dept, "comment": comment})
+        employee = self.users.get(ticket.employee_id)
+        self.notifier.notify_ticket_escalated(ticket, employee.email if employee else None)
+
+    def list_escalations(self, user: User) -> list[dict]:
+        """Escalated tickets for the manual team, enriched with the employee's
+        contact details and their feedback comment (why the auto-fix failed)."""
+        if user.role_name not in Role.AGENT_ROLES and user.role_name not in Role.MANAGER_ROLES:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Only agents/managers can view escalations.")
+        escalated = [t for t in self.list_for_user(user) if t.status == TicketStatus.ESCALATED]
+        out = []
+        for t in escalated:
+            emp = self.users.get(t.employee_id)
+            comments = [f.comment for f in self.feedback.list_for_ticket(t.id) if f.comment]
+            out.append({
+                "ticket": ticket_to_out(t),
+                "employee_name": emp.full_name if emp else "",
+                "employee_email": emp.email if emp else "",
+                "employee_department": emp.department if emp else None,
+                "feedback_comment": comments[-1] if comments else None,
+            })
+        return out
 
     def audit_trail(self, ticket_id: int, user: User):
         ticket = self.get_for_user(ticket_id, user)

@@ -1,0 +1,248 @@
+"""Normalized IT Helpdesk knowledge base (KB001-KB030).
+
+Clean UTF-8, one dict per article with Title/Category/Issue/Solution. Seeded by
+backend/seed.py and embedded for RAG retrieval.
+"""
+
+KB_ARTICLES = [
+    {
+        "title": "Password Reset",
+        "category": "Password/Access",
+        "issue": "User forgot account password.",
+        "solution": "Navigate to the organization's password reset portal. Verify identity using registered email or MFA. Create a new password with required complexity. Log out of all active sessions and sign in again. Update saved passwords in Outlook, Teams, and mobile devices.",
+    },
+    {
+        "title": "VPN Connection Failure",
+        "category": "Network",
+        "issue": "User cannot connect to VPN.",
+        "solution": "Verify internet connectivity. Ensure the VPN client is installed and updated. Confirm username and password. Disconnect other VPN services. Restart the computer and try again. Contact IT if the issue persists.",
+    },
+    {
+        "title": "Outlook Not Opening",
+        "category": "Email",
+        "issue": "Microsoft Outlook fails to launch.",
+        "solution": "Start Outlook in Safe Mode. Disable problematic add-ins. Repair the Office installation. Create a new Outlook profile. Restart the system and verify functionality.",
+    },
+    {
+        "title": "Teams Login Issue",
+        "category": "Software",
+        "issue": "User cannot sign in to Microsoft Teams.",
+        "solution": "Verify account credentials. Clear the Teams cache. Reopen Teams and retry. Check internet access. Reinstall Teams if necessary.",
+    },
+    {
+        "title": "Printer Offline",
+        "category": "Hardware",
+        "issue": "Network printer shows offline.",
+        "solution": "Confirm printer power status. Verify the network connection. Restart the printer and workstation. Remove and re-add the printer. Print a test page.",
+    },
+    {
+        "title": "Laptop Slow Performance",
+        "category": "Hardware",
+        "issue": "Device performance is degraded.",
+        "solution": "Check CPU and memory utilization. Close unnecessary applications. Remove startup programs. Run an antivirus scan. Restart the device.",
+    },
+    {
+        "title": "Software Installation Request",
+        "category": "Software",
+        "issue": "User requires new software.",
+        "solution": "Submit a software request ticket. Obtain manager approval. Verify license availability. Install through approved deployment tools. Confirm successful installation.",
+    },
+    {
+        "title": "Email Configuration",
+        "category": "Email",
+        "issue": "Email account not configured.",
+        "solution": "Open Outlook settings. Enter the organizational email address. Authenticate using organization credentials. Sync the mailbox. Verify send and receive functionality.",
+    },
+    {
+        "title": "MFA Setup",
+        "category": "Password/Access",
+        "issue": "User requires Multi-Factor Authentication.",
+        "solution": "Register a mobile device. Install an authenticator application. Scan the provided QR code. Verify with an authentication challenge. Test a successful login.",
+    },
+    {
+        "title": "Network Connectivity Problem",
+        "category": "Network",
+        "issue": "No network access.",
+        "solution": "Verify the cable or Wi-Fi connection. Restart the modem or router. Run network diagnostics. Renew the IP address. Escalate if an outage exists.",
+    },
+    {
+        "title": "Shared Drive Access Request",
+        "category": "Password/Access",
+        "issue": "User needs access to shared folders.",
+        "solution": "Submit an access request. Obtain department approval. Grant permissions. Validate folder accessibility. Confirm the user can view files.",
+    },
+    {
+        "title": "Account Locked",
+        "category": "Password/Access",
+        "issue": "User account locked after failed attempts.",
+        "solution": "Verify user identity. Unlock the account through the administration portal. Reset the password if needed. Test login. Educate the user on password practices.",
+    },
+    {
+        "title": "Browser Cache Problems",
+        "category": "Software",
+        "issue": "Application pages not loading properly.",
+        "solution": "Clear the browser cache. Clear cookies. Restart the browser. Test the application again. Use an alternate browser if needed.",
+    },
+    {
+        "title": "OneDrive Sync Error",
+        "category": "Software",
+        "issue": "Files not synchronizing.",
+        "solution": "Check the internet connection. Confirm OneDrive is running. Pause and resume syncing. Resolve file conflicts. Restart synchronization.",
+    },
+    {
+        "title": "Email Delivery Delay",
+        "category": "Email",
+        "issue": "Emails delayed or not delivered.",
+        "solution": "Check mailbox quotas. Verify the recipient address. Review email rules. Inspect spam or quarantine folders. Escalate if a mail server issue exists.",
+    },
+    {
+        "title": "Wi-Fi Connectivity Issue",
+        "category": "Network",
+        "issue": "Wireless network unavailable.",
+        "solution": "Confirm Wi-Fi is enabled. Forget and reconnect to the network. Restart the Wi-Fi adapter. Verify correct credentials. Contact the network administrator if unresolved.",
+    },
+    {
+        "title": "Blue Screen Error",
+        "category": "Hardware",
+        "issue": "System crashes with a blue screen.",
+        "solution": "Record the error code. Update device drivers. Run memory diagnostics. Check disk integrity. Review system logs.",
+    },
+    {
+        "title": "Application Access Request",
+        "category": "Password/Access",
+        "issue": "User requires application access.",
+        "solution": "Create an access request. Obtain approval. Assign required permissions. Verify login. Close the request ticket.",
+    },
+    {
+        "title": "Software License Assignment",
+        "category": "Software",
+        "issue": "User requires a software license.",
+        "solution": "Confirm the business requirement. Check the license inventory. Assign an available license. Validate application access. Update audit records.",
+    },
+    {
+        "title": "Remote Desktop Setup",
+        "category": "Network",
+        "issue": "User requires remote desktop access.",
+        "solution": "Enable remote access. Verify security policies. Configure firewall rules. Test the remote connection. Provide usage instructions.",
+    },
+    {
+        "title": "Monitor Not Detected",
+        "category": "Hardware",
+        "issue": "External monitor not working.",
+        "solution": "Verify the cable connection. Select the correct display input. Update display drivers. Detect the monitor manually. Test with an alternate cable.",
+    },
+    {
+        "title": "Audio Not Working",
+        "category": "Hardware",
+        "issue": "No sound output.",
+        "solution": "Verify volume settings. Select the correct playback device. Restart the audio service. Update audio drivers. Test using headphones.",
+    },
+    {
+        "title": "Teams Meeting Audio Failure",
+        "category": "Software",
+        "issue": "Audio unavailable during Teams calls.",
+        "solution": "Verify microphone permissions. Select the correct microphone. Test audio in Teams settings. Restart Teams. Reconnect to the meeting.",
+    },
+    {
+        "title": "Disk Space Low",
+        "category": "Hardware",
+        "issue": "Storage capacity nearly full.",
+        "solution": "Delete temporary files. Empty the recycle bin. Move large files to cloud storage. Uninstall unused applications. Recheck disk availability.",
+    },
+    {
+        "title": "Email Signature Setup",
+        "category": "Email",
+        "issue": "User requires a corporate signature.",
+        "solution": "Open Outlook signature settings. Create a new signature. Add the approved corporate template. Set the default signature. Test with a sample email.",
+    },
+    {
+        "title": "Security Awareness Alert",
+        "category": "Other",
+        "issue": "Suspicious email received.",
+        "solution": "Do not click links. Do not open attachments. Report to the security team. Delete the email after reporting. Monitor account activity.",
+    },
+    {
+        "title": "Mobile Email Setup",
+        "category": "Email",
+        "issue": "Configure email on a mobile device.",
+        "solution": "Open the email application. Add the work account. Authenticate credentials. Enable synchronization. Validate receiving emails.",
+    },
+    {
+        "title": "System Update Failure",
+        "category": "Software",
+        "issue": "Operating system update not completing.",
+        "solution": "Verify disk space. Restart the device. Retry the update installation. Run the update troubleshooter. Install the update manually if necessary.",
+    },
+    {
+        "title": "File Permission Denied",
+        "category": "Password/Access",
+        "issue": "User cannot access a file.",
+        "solution": "Verify ownership. Check file permissions. Grant required access. Refresh the session. Confirm successful access.",
+    },
+    {
+        "title": "New Employee Onboarding",
+        "category": "HR/Payroll",
+        "issue": "New employee requires IT setup.",
+        "solution": "Create the user account. Assign licenses. Configure email. Provide workstation access. Validate application access. Complete the onboarding checklist.",
+    },
+    {
+        "title": "Server Access Issue",
+        "category": "Network",
+        "issue": "User cannot reach an internal server or application server.",
+        "solution": "Verify the network or VPN connection is active. Confirm the correct server hostname or IP address. Check whether the server is reachable using a ping test. Verify the user has been granted access and permissions to that server. Reconnect and retry the connection. Escalate to the infrastructure team if the server itself is down.",
+    },
+    {
+        "title": "Application Server Down",
+        "category": "Network",
+        "issue": "An internal application or service is unreachable for multiple users.",
+        "solution": "Confirm the scope by checking whether it affects one user or many. Check the service status page for known outages. Verify the VPN connection is working. Report the issue to the infrastructure or on-call team. Provide the exact error message and the time it occurred. Await restoration and retry access.",
+    },
+    {
+        "title": "System Crash / Frequent Freezing",
+        "category": "Hardware",
+        "issue": "The computer crashes, freezes, or restarts unexpectedly.",
+        "solution": "Note any error message or blue-screen code that appears. Close heavy applications that consume excessive resources. Update device drivers and install pending operating system updates. Run hardware and memory diagnostics. Check for overheating and verify disk health. Escalate for hardware replacement if the crashes continue.",
+    },
+    {
+        "title": "Internet Not Working",
+        "category": "Network",
+        "issue": "No internet connectivity on the workstation.",
+        "solution": "Check the network cable or Wi-Fi connection. Restart the router or modem. Run network diagnostics to identify the fault. Renew the IP address. Try connecting through another network. Escalate if there is a wider outage.",
+    },
+    {
+        "title": "Slow Computer Performance",
+        "category": "Hardware",
+        "issue": "The device is running very slowly.",
+        "solution": "Check CPU and memory usage in Task Manager. Close unused applications and browser tabs. Disable unnecessary startup programs. Clear temporary files. Run an antivirus scan. Restart the device, and request a hardware upgrade if the slowness persists.",
+    },
+    {
+        "title": "Cannot Access Shared Folder",
+        "category": "Password/Access",
+        "issue": "User is denied access to a shared network folder.",
+        "solution": "Confirm the exact shared folder path. Submit an access request with manager approval. Wait for the permissions to be granted. Sign out and back in to refresh group membership. Verify that access now works. Escalate to the file-server administrator if access is still denied.",
+    },
+    {
+        "title": "New Laptop Setup",
+        "category": "Hardware",
+        "issue": "A new device needs to be set up for a user.",
+        "solution": "Unbox the laptop and power it on. Connect it to the network. Sign in with corporate credentials. Install required software from the Software Center. Configure email and VPN access. Complete the setup checklist.",
+    },
+    {
+        "title": "Two-Factor Authentication Not Working",
+        "category": "Password/Access",
+        "issue": "MFA prompts fail or the authenticator code is rejected.",
+        "solution": "Verify that the device time is correct and synced automatically. Ensure the authenticator app is up to date. Re-sync or re-register the account in the authenticator. Use a backup code if one is available. Contact IT to reset MFA if the user is locked out.",
+    },
+    {
+        "title": "Software Update Required",
+        "category": "Software",
+        "issue": "An application or the operating system needs updating.",
+        "solution": "Save all work and close the application. Check that there is sufficient available disk space. Run the update from the Software Center or system settings. Restart the device if prompted. Verify the new version is installed. Run the update troubleshooter if the update fails.",
+    },
+    {
+        "title": "VPN Authentication Failure",
+        "category": "Network",
+        "issue": "The VPN rejects the user's credentials.",
+        "solution": "Confirm the username and password are correct and not expired. Complete the MFA challenge. Ensure the VPN client is updated to the latest version. Try connecting to a different gateway. Reset the password if it has expired. Contact IT if the account is locked.",
+    },
+]

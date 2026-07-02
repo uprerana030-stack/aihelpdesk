@@ -13,6 +13,7 @@ from app.core.config import get_settings
 from app.models import User
 from app.schemas import (
     DuplicateSuggestion,
+    EscalatedTicketOut,
     EscalateRequest,
     FeedbackCreate,
     PipelineStep,
@@ -60,6 +61,12 @@ async def list_tickets(user: User = Depends(get_current_user), db: Session = Dep
     return [ticket_to_out(t) for t in TicketService(db).list_for_user(user)]
 
 
+@router.get("/escalations", response_model=list[EscalatedTicketOut])
+async def list_escalations(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Manual-team dashboard: escalated tickets + employee contact details."""
+    return TicketService(db).list_escalations(user)
+
+
 @router.get("/{ticket_id}", response_model=TicketOut)
 async def get_ticket(ticket_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return ticket_to_out(TicketService(db).get_for_user(ticket_id, user))
@@ -98,5 +105,11 @@ async def close_ticket(ticket_id: int, user: User = Depends(get_current_user), d
 @router.post("/{ticket_id}/feedback", status_code=201)
 async def submit_feedback(ticket_id: int, payload: FeedbackCreate,
                           user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    fb = TicketService(db).add_feedback(ticket_id, user, payload.rating, payload.comment)
-    return {"id": fb.id, "ticket_id": fb.ticket_id, "rating": fb.rating}
+    service = TicketService(db)
+    fb = service.add_feedback(ticket_id, user, payload.rating, payload.comment)
+    # Report whether negative feedback triggered escalation to the human team,
+    # so the employee UI can say "an agent will contact you".
+    ticket = service.tickets.get(ticket_id)
+    escalated = bool(ticket and ticket.status == "escalated")
+    return {"id": fb.id, "ticket_id": fb.ticket_id, "rating": fb.rating,
+            "escalated": escalated, "status": ticket.status if ticket else None}

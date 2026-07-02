@@ -28,7 +28,8 @@ class AnalyticsService:
         total = len(tickets)
 
         resolved = [t for t in tickets if t.status in (TicketStatus.RESOLVED, TicketStatus.CLOSED)]
-        auto = [t for t in resolved if t.resolution_source == "auto"]
+        # Automated = resolved by AI with no human: RAG auto-resolve OR duplicate-match.
+        auto = [t for t in resolved if t.resolution_source in ("auto", "duplicate_match")]
         agent = [t for t in resolved if t.resolution_source == "agent"]
         escalated = [t for t in tickets if t.status == TicketStatus.ESCALATED or t.escalation_target]
 
@@ -37,7 +38,7 @@ class AnalyticsService:
 
         # Routing accuracy proxy: routed tickets that were NOT later escalated
         # (i.e. reached the right team first time, no re-routing).
-        routed = [t for t in tickets if t.department and t.resolution_source != "auto"]
+        routed = [t for t in tickets if t.department and t.resolution_source not in ("auto", "duplicate_match")]
         correctly_routed = [t for t in routed if not t.escalation_target]
 
         by_department: dict[str, int] = {}

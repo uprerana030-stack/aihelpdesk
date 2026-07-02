@@ -18,10 +18,13 @@ class AuthService:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Unknown role '{payload.role_name}'.")
         if self.users.get_by_email(payload.email):
             raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered.")
+        # Self-service registration may omit a password; default to the demo
+        # password so the account can still be logged into later.
+        password = payload.password or "Password123"
         user = User(
             email=payload.email,
             full_name=payload.full_name,
-            hashed_password=hash_password(payload.password),
+            hashed_password=hash_password(password),
             role_name=payload.role_name,
             department=payload.department,
         )

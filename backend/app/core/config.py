@@ -32,13 +32,21 @@ class Settings(BaseSettings):
 
     # --- AI pipeline tunables (configurable, never hardcoded) ---
     ai_confidence_threshold: float = 0.75
-    duplicate_similarity_threshold: float = 0.85
+    # Duplicate detection uses two tiers, TUNED against real gemini-embedding-001
+    # SEMANTIC_SIMILARITY scores: unrelated tickets top out ~0.80, genuine
+    # duplicates score ~0.91-0.95. At/above the merge threshold the new ticket is
+    # auto-resolved from the original's resolution; between suggest and merge it
+    # only shows "possibly related" and continues to RAG; below suggest, nothing.
+    duplicate_similarity_threshold: float = 0.90   # merge (auto-resolve as duplicate)
+    duplicate_suggest_threshold: float = 0.85      # show as possibly related
     rag_top_k: int = 4
 
     # --- External LLM provider (Gemini only) ---
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
-    gemini_embedding_model: str = "models/text-embedding-004"
+    # flash-lite: much higher free-tier daily quota than gemini-2.5-flash.
+    gemini_model: str = "gemini-2.5-flash-lite"
+    # gemini-embedding-001 is available on the REST v1beta endpoint (3072-dim).
+    gemini_embedding_model: str = "models/gemini-embedding-001"
 
     # --- Outbound TLS (backend -> external APIs such as Gemini) ---
     # Corporate proxies that intercept TLS (Zscaler/Netskope) cause

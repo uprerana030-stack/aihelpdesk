@@ -4,6 +4,7 @@ import {
   escalateTicket,
   getAudit,
   getTicket,
+  listEscalations,
   listTickets,
   resolveTicket,
   submitFeedback,
@@ -11,9 +12,14 @@ import {
 } from '../api/tickets';
 
 const TICKETS_KEY = ['tickets'];
+const ESCALATIONS_KEY = ['escalations'];
 
 export function useTickets() {
   return useQuery({ queryKey: TICKETS_KEY, queryFn: listTickets });
+}
+
+export function useEscalations() {
+  return useQuery({ queryKey: ESCALATIONS_KEY, queryFn: listEscalations });
 }
 
 export function useTicket(id) {
@@ -47,6 +53,7 @@ function useTicketLifecycleMutation(fn) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: TICKETS_KEY });
       qc.invalidateQueries({ queryKey: ['ticket'] });
+      qc.invalidateQueries({ queryKey: ESCALATIONS_KEY });
     },
   });
 }
@@ -69,8 +76,13 @@ export function useCloseTicket() {
 
 export function useSubmitFeedback() {
   const qc = useQueryClient();
+  // mutationFn returns the feedback response ({ escalated, status, ... }) so
+  // callers can read `data` in onSuccess / the returned mutation result.
   return useMutation({
     mutationFn: (args) => submitFeedback(args.id, args.rating, args.comment),
-    onSuccess: () => qc.invalidateQueries({ queryKey: TICKETS_KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: TICKETS_KEY });
+      qc.invalidateQueries({ queryKey: ESCALATIONS_KEY });
+    },
   });
 }

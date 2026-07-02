@@ -35,7 +35,13 @@ export async function closeTicket(id) {
 }
 
 export async function submitFeedback(id, rating, comment) {
-  await client.post(`/tickets/${id}/feedback`, { rating, comment });
+  const { data } = await client.post(`/tickets/${id}/feedback`, { rating, comment });
+  return data;
+}
+
+export async function listEscalations() {
+  const { data } = await client.get('/tickets/escalations');
+  return data;
 }
 
 export async function getAudit(id) {

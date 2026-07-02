@@ -3,6 +3,8 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
+  Divider,
   Grid,
   InputAdornment,
   List,
@@ -35,18 +37,23 @@ export default function KnowledgeBasePage() {
   const searchQuery = useSearchKB(query);
 
   const [newTitle, setNewTitle] = useState('');
-  const [newContent, setNewContent] = useState('');
+  const [newIssue, setNewIssue] = useState('');
+  const [newSolution, setNewSolution] = useState('');
   const [newCategory, setNewCategory] = useState('General');
 
+  const canPublish = newTitle.trim() && newIssue.trim() && newSolution.trim();
+
   const handleCreate = () => {
-    if (!newTitle.trim() || !newContent.trim()) return;
+    if (!canPublish) return;
+    const content = `Issue: ${newIssue.trim()}\n\nSolution: ${newSolution.trim()}`;
     createArticle.mutate(
-      { title: newTitle.trim(), content: newContent.trim(), category: newCategory },
+      { title: newTitle.trim(), content, category: newCategory },
       {
         onSuccess: (a) => {
           setSelected(a);
           setNewTitle('');
-          setNewContent('');
+          setNewIssue('');
+          setNewSolution('');
           setNewCategory('General');
         },
       },
@@ -143,14 +150,55 @@ export default function KnowledgeBasePage() {
                   ))}
                 </TextField>
                 <TextField
-                  label="Content"
-                  value={newContent}
-                  onChange={(e) => setNewContent(e.target.value)}
+                  label="Issue"
+                  value={newIssue}
+                  onChange={(e) => setNewIssue(e.target.value)}
+                  fullWidth
+                  size="small"
+                  helperText="A short description of the problem"
+                />
+                <TextField
+                  label="Solution"
+                  value={newSolution}
+                  onChange={(e) => setNewSolution(e.target.value)}
                   multiline
                   minRows={4}
                   fullWidth
                   size="small"
+                  helperText="Step-by-step resolution"
                 />
+
+                <Divider textAlign="left">
+                  <Typography variant="caption" color="text.secondary">
+                    Preview
+                  </Typography>
+                </Divider>
+                <Paper variant="outlined" sx={{ p: 2 }}>
+                  <Typography variant="h6" gutterBottom>
+                    {newTitle.trim() || 'Untitled article'}
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <Chip
+                      size="small"
+                      label={newCategory}
+                      color="primary"
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Issue
+                  </Typography>
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mb: 2 }}>
+                    {newIssue.trim() || '—'}
+                  </Typography>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Solution
+                  </Typography>
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                    {newSolution.trim() || '—'}
+                  </Typography>
+                </Paper>
+
                 {createArticle.isError && (
                   <Alert severity="error">{apiErrorMessage(createArticle.error)}</Alert>
                 )}
@@ -158,7 +206,7 @@ export default function KnowledgeBasePage() {
                   <Button
                     variant="contained"
                     onClick={handleCreate}
-                    disabled={!newTitle.trim() || !newContent.trim() || createArticle.isPending}
+                    disabled={!canPublish || createArticle.isPending}
                   >
                     Publish article
                   </Button>

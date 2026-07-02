@@ -22,7 +22,13 @@ from typing import Any
 import numpy as np
 
 from app.core.config import get_settings
-from app.core.embeddings import embed, embed_many
+from app.core.embeddings import (
+    TASK_DOCUMENT,
+    TASK_QUERY,
+    TASK_SIMILARITY,
+    embed,
+    embed_many,
+)
 
 logger = logging.getLogger("helpdesk.vectorstore")
 settings = get_settings()
@@ -176,7 +182,7 @@ def backend_name() -> str:
 # ---- High-level helpers used by repositories / agents ----------------------
 
 def add_kb_chunk(chunk_id: str, text: str, metadata: dict[str, Any]) -> None:
-    _get_store().upsert(KB_COLLECTION, [chunk_id], [text], [metadata], [embed(text)])
+    _get_store().upsert(KB_COLLECTION, [chunk_id], [text], [metadata], [embed(text, TASK_DOCUMENT)])
 
 
 def add_kb_chunks(items: list[tuple[str, str, dict[str, Any]]]) -> None:
@@ -185,7 +191,7 @@ def add_kb_chunks(items: list[tuple[str, str, dict[str, Any]]]) -> None:
     ids = [i[0] for i in items]
     docs = [i[1] for i in items]
     metas = [i[2] for i in items]
-    _get_store().upsert(KB_COLLECTION, ids, docs, metas, embed_many(docs))
+    _get_store().upsert(KB_COLLECTION, ids, docs, metas, embed_many(docs, TASK_DOCUMENT))
 
 
 def delete_kb_article(article_id: int) -> None:
@@ -202,18 +208,32 @@ def delete_kb_article(article_id: int) -> None:
 
 def search_kb(query: str, top_k: int | None = None) -> list[dict[str, Any]]:
     k = top_k or settings.rag_top_k
-    return _get_store().query(KB_COLLECTION, embed(query), k)
+    try:
+        return _get_store().query(KB_COLLECTION, embed(query, TASK_QUERY), k)
+    except Exception as exc:  # noqa: BLE001
+        logger.error(
+            "KB vector search failed (%s). If the embedding model/dimension "
+            "changed, rebuild the index: python backend/reindex.py", exc,
+        )
+        return []
 
 
 def upsert_ticket_embedding(ticket_id: int, text: str, status: str) -> None:
     _get_store().upsert(
         TICKET_COLLECTION, [f"ticket-{ticket_id}"], [text],
-        [{"ticket_id": ticket_id, "status": status}], [embed(text)],
+        [{"ticket_id": ticket_id, "status": status}], [embed(text, TASK_SIMILARITY)],
     )
 
 
 def find_similar_tickets(text: str, top_k: int = 5, exclude_ticket_id: int | None = None) -> list[dict[str, Any]]:
-    results = _get_store().query(TICKET_COLLECTION, embed(text), top_k)
+    try:
+        results = _get_store().query(TICKET_COLLECTION, embed(text, TASK_SIMILARITY), top_k)
+    except Exception as exc:  # noqa: BLE001
+        logger.error(
+            "Ticket similarity search failed (%s). If the embedding model/"
+            "dimension changed, rebuild the index: python backend/reindex.py", exc,
+        )
+        return []
     if exclude_ticket_id is not None:
         results = [r for r in results if r["metadata"].get("ticket_id") != exclude_ticket_id]
     return results
@@ -221,3 +241,18 @@ def find_similar_tickets(text: str, top_k: int = 5, exclude_ticket_id: int | Non
 
 def kb_chunk_count() -> int:
     return _get_store().count(KB_COLLECTION)
+
+
+def reset_collection(collection: str) -> None:
+    """Drop all vectors in a collection. Used by reindex.py when the embedding
+    model (and thus vector dimension) changes. Backend-agnostic."""
+    store = _get_store()
+    if isinstance(store, _NumpyStore):
+        path = store._path(collection)
+        if path.exists():
+            path.unlink()
+    else:  # chromadb
+        try:
+            store._client.delete_collection(collection)
+        except Exception:  # noqa: BLE001 — collection may not exist yet
+            pass

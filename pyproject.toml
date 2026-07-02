@@ -5,17 +5,22 @@ description = "AI-Powered IT/Admin Helpdesk Router (MVP) — multi-agent ticket 
 readme = "README.md"
 requires-python = ">=3.11"
 
-# Pinned loosely so the project installs on a range of interpreters. On Python 3.14
-# ChromaDB / sentence-transformers may not have wheels yet; the VectorStore layer
-# falls back to a pure-numpy cosine backend automatically (see app/core/vectorstore.py).
+# Full backend runtime (all deps declared here — no requirements.txt). Install
+# with `pip install -e .` (add `.[dev]` for tests). Runs in a GitHub Codespace,
+# which has no corporate TLS proxy, so certificate verification stays ON.
+# If ChromaDB lacks a wheel for the interpreter, the VectorStore layer falls
+# back to a pure-numpy cosine backend automatically (see app/core/vectorstore.py).
 dependencies = [
     "fastapi>=0.110",
     "uvicorn[standard]>=0.27",
-    "pydantic>=2.6",
+    # pydantic[email] pulls in email-validator, required by schemas.EmailStr
+    # (missing it makes app.schemas fail to import and the backend won't start).
+    "pydantic[email]>=2.6",
     "pydantic-settings>=2.2",
     "sqlalchemy>=2.0",
     "passlib[bcrypt]>=1.7",
-    # passlib 1.7.x is incompatible with bcrypt >=4.1 (removed __about__, hard 72-byte limit).
+    # passlib 1.7.x reads bcrypt.__about__.__version__, removed in bcrypt >=4.1.
+    # Pin below that so password hashing loads cleanly (no runtime error/warning).
     "bcrypt<4.1",
     "python-multipart>=0.0.9",
     "httpx>=0.27",
@@ -23,13 +28,18 @@ dependencies = [
     "streamlit>=1.33",
     "pandas>=2.2",
     "python-dotenv>=1.0",
+    # Live AI: Gemini LLM + embeddings (google-genai SDK).
+    "google-genai>=1.0",
+    # Vector store for RAG / duplicate detection.
+    "chromadb>=0.5",
 ]
 
 [project.optional-dependencies]
 # Best-effort: install if your interpreter has wheels available.
-vector = ["chromadb>=0.5"]
 ocr = ["pytesseract>=0.3.10", "Pillow>=10.0"]
-llm = ["google-generativeai>=0.7"]
+# Offline/local real embedding backend (fallback when Gemini is unreachable).
+# Heavy (pulls torch); install only if you want a non-Gemini real embedder.
+embeddings = ["sentence-transformers>=2.2"]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
 
 [tool.pytest.ini_options]
