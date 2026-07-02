@@ -31,7 +31,10 @@ class Settings(BaseSettings):
     upload_dir: str = str(PROJECT_ROOT / "data" / "uploads")
 
     # --- AI pipeline tunables (configurable, never hardcoded) ---
-    ai_confidence_threshold: float = 0.75
+    ai_confidence_threshold: float = 0.70   # KB auto-resolve confidence gate (>= 70%)
+    # Min RAG retrieval score to count as a real "KB match" (calibrated: genuine
+    # matches score ~0.70-0.77, spurious/no-match <=0.66 with gemini embeddings).
+    kb_match_min_score: float = 0.68
     # Duplicate detection uses two tiers, TUNED against real gemini-embedding-001
     # SEMANTIC_SIMILARITY scores: unrelated tickets top out ~0.80, genuine
     # duplicates score ~0.91-0.95. At/above the merge threshold the new ticket is

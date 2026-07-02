@@ -132,53 +132,51 @@ class AgentOrchestrator:
             if src.get("article_id"):
                 self.article_repo.increment_retrieval(src["article_id"])
 
-        # --- Step 6: AI Confidence Check ---
+        # --- Step 6: Resolution decision (KB-match + confidence workflow) ---
+        # Rule 1: KB match AND confidence >= threshold  -> auto-resolve.
+        # Rule 2: KB match but confidence < threshold    -> escalate to L2.
+        # Rule 3: no KB match but recognized category     -> escalate to L2.
+        # Rule 4: no KB match and no recognized category  -> leave In Progress.
         threshold = settings.ai_confidence_threshold
-        if ticket.confidence >= threshold and rag_res.output.get("answer"):
-            # High confidence -> auto-resolve from the knowledge base.
-            ticket.status = TicketStatus.RESOLVED
-            ticket.resolution = rag_res.output["answer"]
-            ticket.resolution_source = "auto"
-            ticket.kb_sources = json.dumps(sources)
-            ticket.first_response_at = _now()
-            ticket.resolved_at = _now()
-            self.audit.event(
-                event="auto_resolved", ticket_id=ticket.id,
-                detail=f"Confidence {ticket.confidence:.2f} >= threshold {threshold:.2f}.",
-            )
-            self._trace(steps, AgentResult(
-                "ConfidenceCheck", "auto_resolved",
-                detail=f"Auto-resolved from KB (conf {ticket.confidence:.2f} >= {threshold:.2f}).",
-                confidence=ticket.confidence,
-            ))
-        else:
-            # Low confidence -> KB has no solution: route to a human team.
-            route_res = self.routing.run(ticket.category, ticket.confidence)
-            self.audit.record(route_res, ticket.id)
-            self._trace(steps, route_res)
-            ticket.department = route_res.output.get("department")
-            ticket.routing_reason = route_res.output.get("reason")
-            ticket.kb_sources = json.dumps(sources)  # keep AI suggestions for the agent
-            ticket.first_response_at = _now()
+        answer = rag_res.output.get("answer")
+        retrieval = rag_res.output.get("retrieval_strength", 0.0) or 0.0
+        has_kb_match = retrieval >= settings.kb_match_min_score
+        recognized_category = bool(ticket.category) and ticket.category != "Other"
+        ticket.kb_sources = json.dumps(sources)  # keep KB citations for context
+        ticket.first_response_at = _now()
 
-            agent = self.user_repo.pick_available_agent(ticket.department)
-            if agent:
-                ticket.assigned_agent_id = agent.id
-                ticket.status = TicketStatus.IN_PROGRESS
-                self.audit.event(
-                    event="assigned_agent", ticket_id=ticket.id,
-                    detail=f"Assigned to {agent.email} ({ticket.department}).",
-                )
-                self._trace(steps, AgentResult(
-                    "AssignmentAgent", "assigned_agent",
-                    detail=f"Assigned to {agent.full_name or agent.email} in {ticket.department}.",
-                ))
-            else:
-                ticket.status = TicketStatus.ROUTED
-                self.audit.event(
-                    event="routed_unassigned", ticket_id=ticket.id,
-                    detail=f"No available agent in {ticket.department}; left in queue.",
-                )
+        if has_kb_match and ticket.confidence >= threshold and answer:
+            # Rule 1 — auto-resolve from the knowledge base.
+            ticket.status = TicketStatus.RESOLVED
+            ticket.resolution = answer
+            ticket.resolution_source = "auto"
+            ticket.resolved_at = _now()
+            note = f"Applied KB solution (confidence {ticket.confidence:.0%} >= {threshold:.0%})."
+            ticket.routing_reason = note
+            self.audit.event(event="auto_resolved", ticket_id=ticket.id, detail=note)
+            self._trace(steps, AgentResult(
+                "ConfidenceCheck", "auto_resolved", detail=note, confidence=ticket.confidence))
+        elif has_kb_match:
+            # Rule 2 — KB matched but low/ambiguous confidence -> escalate to L2.
+            self._escalate_to_l2(
+                ticket, steps,
+                note=(f"KB match found but AI confidence {ticket.confidence:.0%} is below "
+                      f"{threshold:.0%} (ambiguous). Escalated to L2 for manual review."))
+        elif recognized_category:
+            # Rule 3 — no confident KB solution, but a valid category -> escalate to L2.
+            self._escalate_to_l2(
+                ticket, steps,
+                note=(f"No confident KB solution for this {ticket.category} issue. "
+                      f"Escalated to L2 support."))
+        else:
+            # Rule 4 — no KB match and no recognized category -> leave In Progress.
+            ticket.status = TicketStatus.IN_PROGRESS
+            ticket.routing_reason = "Awaiting further classification or KB entry."
+            self.audit.event(event="awaiting_classification", ticket_id=ticket.id,
+                             detail=ticket.routing_reason)
+            self._trace(steps, AgentResult(
+                "ConfidenceCheck", "awaiting_classification",
+                detail=ticket.routing_reason, confidence=ticket.confidence))
 
         # Refresh stored embedding with the final status.
         upsert_ticket_embedding(ticket.id, steps_text, ticket.status)
@@ -207,6 +205,21 @@ class AgentOrchestrator:
             detail=detail, confidence=dup_res.confidence,
         ))
         return True
+
+    def _escalate_to_l2(self, ticket: Ticket, steps: list[dict], note: str) -> None:
+        """Route to the right department and escalate to L2 support (Rules 2 & 3)."""
+        route_res = self.routing.run(ticket.category, ticket.confidence)
+        self.audit.record(route_res, ticket.id)
+        ticket.department = route_res.output.get("department")
+        ticket.status = TicketStatus.ESCALATED
+        ticket.escalation_target = "L2"
+        ticket.routing_reason = note
+        agent = self.user_repo.pick_available_agent(ticket.department)
+        if agent:
+            ticket.assigned_agent_id = agent.id
+        self.audit.event(event="escalated_l2", ticket_id=ticket.id, detail=note)
+        self._trace(steps, AgentResult(
+            "EscalationAgent", "escalated_l2", detail=note, confidence=ticket.confidence))
 
     @staticmethod
     def _duplicate_reason(ticket: Ticket, original: Ticket | None, resolved: bool) -> str:
