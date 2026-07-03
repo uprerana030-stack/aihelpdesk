@@ -9,11 +9,8 @@ export function resolveApiBaseUrl(runtimeEnv = env) {
     return configuredUrl;
   }
 
-  if (runtimeEnv.MODE === 'development') {
-    return '';
-  }
-
-  return 'http://localhost:8000';
+  // Use relative URL so requests go to the same host/domain (both dev and production)
+  return '';
 }
 
 // Backend is served over plain HTTP (no TLS), so there is no SSL certificate
