@@ -10,5 +10,39 @@ export default defineConfig({
     port: 5173,
     // Don't try to auto-open a browser inside the headless Codespace container.
     open: false,
+    proxy: {
+      '/auth': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+      '/tickets': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+      '/knowledge': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+      '/analytics': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+      '/notifications': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+      '/admin': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+      '/health': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+      '/status': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+    },
   },
 });
