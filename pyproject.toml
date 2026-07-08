@@ -32,14 +32,13 @@ dependencies = [
     "google-genai>=1.0",
     # Vector store for RAG / duplicate detection.
     "chromadb>=0.5",
+    # Sentence embeddings for RAG retrieval and semantic similarity (primary backend).
+    "sentence-transformers>=2.2",
 ]
 
 [project.optional-dependencies]
 # Best-effort: install if your interpreter has wheels available.
 ocr = ["pytesseract>=0.3.10", "Pillow>=10.0"]
-# Offline/local real embedding backend (fallback when Gemini is unreachable).
-# Heavy (pulls torch); install only if you want a non-Gemini real embedder.
-embeddings = ["sentence-transformers>=2.2"]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
 
 [tool.pytest.ini_options]
