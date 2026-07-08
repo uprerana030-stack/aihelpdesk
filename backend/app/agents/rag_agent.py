@@ -59,12 +59,20 @@ class RAGAgent:
         result = llm_complete(prompt, system=_SYSTEM)
 
         if not result.available:
-            # Graceful degradation: cannot generate -> low confidence -> route to human.
+            # Graceful degradation: when LLM is unavailable, use KB retrieval strength as confidence
+            # if require_gemini is False. This allows auto-resolution from strong KB matches
+            # even without an LLM. Otherwise, force low confidence so the ticket routes to humans.
+            confidence = retrieval_strength if not settings.require_gemini else 0.0
+            detail = (
+                f"Using KB retrieval strength as confidence ({confidence:.0%}) — LLM unavailable."
+                if not settings.require_gemini
+                else "LLM unavailable; degrading to manual routing."
+            )
             return AgentResult(
                 self.name, "rag_generated",
                 {"answer": "", "sources": sources, "retrieval_strength": round(retrieval_strength, 3)},
-                confidence=0.0, model_version="none",
-                detail="LLM unavailable; degrading to manual routing.",
+                confidence=confidence, model_version="none",
+                detail=detail,
             )
 
         data = extract_json(result.text) or {}

@@ -157,7 +157,17 @@ class AgentOrchestrator:
         ticket.kb_sources = json.dumps(sources)  # keep KB citations for context
         retrieval = rag_res.output.get("retrieval_strength", 0.0) or 0.0
         has_kb_match = retrieval >= settings.kb_match_min_score
-        return has_kb_match, rag_res.output.get("answer"), ticket.confidence
+        
+        # If LLM is unavailable but we have a KB match, generate a summary from the top article
+        answer = rag_res.output.get("answer")
+        if not answer and has_kb_match and sources:
+            # Use the highest-scoring KB article's snippet as the answer
+            top_source = sources[0]
+            article_title = top_source.get("title", "")
+            snippet = top_source.get("snippet", "")
+            answer = f"Based on our knowledge base article '{article_title}':\n\n{snippet}"
+        
+        return has_kb_match, answer, ticket.confidence
 
     def _auto_resolve_from_kb(self, ticket: Ticket, answer: str,
                               steps: list[dict], note: str) -> None:
